@@ -31,12 +31,18 @@
     <script>
         var data = {{ data }};
         var map = L.map('map', {
-            center: [{{ center_lat }}, {{ center_lng }}]
-        zoom: 13
+            center: [{{ center_lat }}, {{ center_lng }}], 
+            zoom: 13
         });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+            id: 'osm.standard'
+        }).addTo(map);
 
         data.forEach(function (value, idx) {
             L.marker([value.latitude, value.longitude])
+                .bindPopup(value.name)
                 .addTo(map);
         });
     </script>

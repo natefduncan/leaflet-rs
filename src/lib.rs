@@ -3,16 +3,18 @@ use csv;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::error::Error;
-use std::io;
+use std::io::{self, Write};
 use tera::{Context, Tera};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Place {
     latitude: f64,
     longitude: f64,
+    name : String
 }
 
-pub fn render(templates: tera::Tera, places: Vec<Place>) {
+pub fn render(templates: &mut tera::Tera, places: Vec<Place>) {
+    templates.autoescape_on(vec![]);
     let center: [f64; 2] = average_coords(&places);
     let mut context = Context::new();
     context.insert("center_lat", &center[0]);
@@ -20,16 +22,12 @@ pub fn render(templates: tera::Tera, places: Vec<Place>) {
     let data = vector_to_string(places);
     context.insert("data", &data);
     match templates.render("map.html", &context) {
-        Ok(s) => println!("{:?}", s),
+        Ok(s) => io::stdout().write(s.as_bytes()),
         Err(e) => {
-            println!("Error: {}", e);
-            let mut cause = e.source();
-            while let Some(e) = cause {
-                println!("Reason: {}", e);
-                cause = e.source();
-            }
+            io::stdout().write("Error: ".as_bytes())
         }
-    };
+    }.unwrap();
+    ()
 }
 
 fn average_coords(places: &Vec<Place>) -> [f64; 2] {
@@ -66,7 +64,6 @@ pub fn stdin_to_places() -> Vec<Place> {
         let record: Place = result.expect("Could not coerce to places.");
         output.push(record);
     }
-    println!("{:?}", output); 
     return output;
 }
 

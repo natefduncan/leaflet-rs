@@ -24,12 +24,12 @@ fn main() {
     } else {
         data.append(&mut lib::stdin_to_places());
     }
-    let templates = match Tera::new("templates/**/*") {
+    let mut templates = match Tera::new("templates/**/*") {
         Ok(t) => t,
         Err(e) => {
             println!("Parsing error(s): {}", e);
             ::std::process::exit(1);
         }
     };
-    lib::render(templates, data);
+    lib::render(&mut templates, data);
 }
