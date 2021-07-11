@@ -1,12 +1,11 @@
 extern crate clap;
 
 use clap::{App, Arg};
-use tera::Tera;
-mod lib;
+mod map; 
 
 fn main() {
     let matches = App::new("leaflet")
-        .version("1.0")
+        .version("1.1")
         .author("Nate D.")
         .about("CSV of latitdue and longitudes to Leaflet HTML file.")
         .arg(
@@ -17,19 +16,12 @@ fn main() {
         )
         .get_matches();
 
-    let mut data: Vec<lib::Place> = Vec::new();
+    let mut data: Vec<map::Place> = Vec::new();
     if matches.is_present("FILE") {
         let file = matches.value_of("FILE").unwrap();
-        data.append(&mut lib::file_to_places(&file));
+        data.append(&mut map::file_to_places(&file));
     } else {
-        data.append(&mut lib::stdin_to_places());
+        data.append(&mut map::stdin_to_places());
     }
-    let mut templates = match Tera::new("templates/**/*") {
-        Ok(t) => t,
-        Err(e) => {
-            println!("Parsing error(s): {}", e);
-            ::std::process::exit(1);
-        }
-    };
-    lib::render(&mut templates, data);
+    map::render(data);
 }

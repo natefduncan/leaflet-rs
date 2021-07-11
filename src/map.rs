@@ -2,7 +2,6 @@ extern crate tera;
 use csv;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::error::Error;
 use std::io::{self, Write};
 use tera::{Context, Tera};
 
@@ -13,18 +12,18 @@ pub struct Place {
     name : String
 }
 
-pub fn render(templates: &mut tera::Tera, places: Vec<Place>) {
-    templates.autoescape_on(vec![]);
+pub fn render(places: Vec<Place>) {
     let center: [f64; 2] = average_coords(&places);
     let mut context = Context::new();
     context.insert("center_lat", &center[0]);
     context.insert("center_lng", &center[1]);
     let data = vector_to_string(places);
     context.insert("data", &data);
-    match templates.render("map.html", &context) {
-        Ok(s) => io::stdout().write(s.as_bytes()),
+    match Tera::one_off(TEMPLATE, &context, false) {
+        Ok(s) => io::stdout().write(s.as_bytes()), 
         Err(e) => {
             eprintln!("{}", e); 
+            io::stdout().write("Error".as_bytes())
         }
     }.unwrap();
     ()
@@ -68,7 +67,8 @@ pub fn stdin_to_places() -> Vec<Place> {
 }
 
 pub fn file_to_places(file_path: &str) -> Vec<Place> {
-    let mut rdr = csv::Reader::from_path(&file_path).expect("Could not get from path.");
+    let path = std::fs::canonicalize(file_path).expect("Could not get path."); 
+    let mut rdr = csv::Reader::from_path(path).expect("Could not get reader.");
     let mut output: Vec<Place> = Vec::new();
     for result in rdr.deserialize() {
         let record: Place = result.expect("Could not coerce to places.");
@@ -76,3 +76,56 @@ pub fn file_to_places(file_path: &str) -> Vec<Place> {
     }
     return output;
 }
+
+pub const TEMPLATE : &str = r#"
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Leaflet</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+        crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+        integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+        crossorigin=""></script>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #map {
+            flex-grow: 1;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+        var data = {{ data }};
+        var map = L.map("map", {
+            center: [{{ center_lat }}, {{ center_lng }}], 
+            zoom: 13
+        });
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 18,
+            id: "osm.standard"
+        }).addTo(map);
+
+        data.forEach(function (value, idx) {
+            L.marker([value.latitude, value.longitude])
+                .bindPopup(value.name)
+                .addTo(map);
+        });
+    </script>
+</body>
+
+</html>
+"#; 
