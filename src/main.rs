@@ -5,7 +5,7 @@ mod map;
 
 fn main() {
     let matches = App::new("leaflet")
-        .version("1.1")
+        .version("1.2")
         .author("Nate D.")
         .about("CSV of latitdue and longitudes to Leaflet HTML file.")
         .arg(
