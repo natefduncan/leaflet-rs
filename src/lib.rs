@@ -24,7 +24,7 @@ pub fn render(templates: &mut tera::Tera, places: Vec<Place>) {
     match templates.render("map.html", &context) {
         Ok(s) => io::stdout().write(s.as_bytes()),
         Err(e) => {
-            io::stdout().write("Error: ".as_bytes())
+            eprintln!("{}", e); 
         }
     }.unwrap();
     ()
