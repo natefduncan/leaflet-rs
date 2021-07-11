@@ -9,7 +9,8 @@ use tera::{Context, Tera};
 pub struct Place {
     latitude: f64,
     longitude: f64,
-    name : String
+    name : String, 
+    category : String
 }
 
 pub fn render(places: Vec<Place>) {
@@ -109,21 +110,54 @@ pub const TEMPLATE : &str = r#"
 <body>
     <div id="map"></div>
     <script>
+        //Data
         var data = {{ data }};
-        var map = L.map("map", {
-            center: [{{ center_lat }}, {{ center_lng }}], 
-            zoom: 13
-        });
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+
+        //Tile Layer
+        var tile_layer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             maxZoom: 18,
             id: "osm.standard"
-        }).addTo(map);
+        }); 
 
+        //Color palette
+        var colors = ['#fff100', '#ff8c00', '#e81123','#ec008c','#68217a','#00188f','#00bcf2','#00b294','#009e49','#bad80a']; 
+        layers = {}; 
+
+        //Create markers and add to layers
         data.forEach(function (value, idx) {
-            L.marker([value.latitude, value.longitude])
-                .bindPopup(value.name)
-                .addTo(map);
+            if (!(value.category in layers)) {
+                layers[value.category] = [];
+            }
+            var color_idx = Object.keys(layers).indexOf(value.category);
+            var color = colors[color_idx];
+            var temp_marker = L.circle([value.latitude, value.longitude], {
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.5,
+                radius: 500
+            })
+            .bindPopup(value.name)
+            layers[value.category].push(temp_marker);  
         });
+
+        //Create layer groups
+        var layer_groups = {}; 
+        Object.keys(layers).forEach(function(value, idx) {
+            layer_groups[value] = L.layerGroup(layers[value]); 
+        })
+
+        var map = L.map("map", {
+            center: [{{ center_lat }}, {{ center_lng }}], 
+            zoom: 13, 
+            layers : [tile_layer]
+        });
+
+        var baseMaps = {
+            "Map": tile_layer,
+        };
+
+        console.log(Object.keys(layer_groups)); 
+        L.control.layers(baseMaps, layer_groups).addTo(map);
     </script>
 </body>
 
