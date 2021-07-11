@@ -156,7 +156,6 @@ pub const TEMPLATE : &str = r#"
             "Map": tile_layer,
         };
 
-        console.log(Object.keys(layer_groups)); 
         L.control.layers(baseMaps, layer_groups).addTo(map);
     </script>
 </body>
