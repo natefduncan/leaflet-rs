@@ -120,7 +120,7 @@ pub const TEMPLATE : &str = r#"
         }); 
 
         //Color palette
-        var colors = ['#fff100', '#ff8c00', '#e81123','#ec008c','#68217a','#00188f','#00bcf2','#00b294','#009e49','#bad80a']; 
+        var colors = ['#fbb4ae','#b3cde3','#ccebc5','#decbe4','#fed9a6','#ffffcc','#e5d8bd','#fddaec']; 
         layers = {}; 
 
         //Create markers and add to layers
@@ -134,7 +134,7 @@ pub const TEMPLATE : &str = r#"
                 color: color,
                 fillColor: color,
                 fillOpacity: 0.5,
-                radius: 500
+                radius: 250
             })
             .bindPopup(value.name)
             layers[value.category].push(temp_marker);  
