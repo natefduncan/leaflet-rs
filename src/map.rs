@@ -13,13 +13,14 @@ pub struct Place {
     category : String
 }
 
-pub fn render(places: Vec<Place>) {
+pub fn render(places: Vec<Place>, colors : &str) {
     let center: [f64; 2] = average_coords(&places);
     let mut context = Context::new();
     context.insert("center_lat", &center[0]);
     context.insert("center_lng", &center[1]);
     let data = vector_to_string(places);
     context.insert("data", &data);
+    context.insert("colors", &colors); 
     match Tera::one_off(TEMPLATE, &context, false) {
         Ok(s) => io::stdout().write(s.as_bytes()), 
         Err(e) => {
@@ -41,19 +42,7 @@ fn average_coords(places: &Vec<Place>) -> [f64; 2] {
 }
 
 pub fn vector_to_string(data: Vec<Place>) -> String {
-    let mut output = String::new();
-    output.push_str("[");
-    let mut is_first: u32 = 1;
-    for place in data {
-        let string = serde_json::to_string(&place).unwrap();
-        if is_first == 1 {
-            is_first = 0;
-        } else {
-            output.push_str(",");
-        }
-        output.push_str(&string);
-    }
-    output.push_str("]");
+    let output : String = data.iter().map(|place| serde_json::to_string(&place).unwrap()).collect::<Vec<String>>().join(","); 
     output
 }
 
@@ -111,7 +100,7 @@ pub const TEMPLATE : &str = r#"
     <div id="map"></div>
     <script>
         //Data
-        var data = {{ data }};
+        var data = [{{ data }}];
 
         //Tile Layer
         var tile_layer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -120,7 +109,7 @@ pub const TEMPLATE : &str = r#"
         }); 
 
         //Color palette
-        var colors = ['#fbb4ae','#b3cde3','#ccebc5','#decbe4','#fed9a6','#ffffcc','#e5d8bd','#fddaec']; 
+        var colors = [{{colors}}]; 
         layers = {}; 
 
         //Create markers and add to layers
@@ -129,7 +118,11 @@ pub const TEMPLATE : &str = r#"
                 layers[value.category] = [];
             }
             var color_idx = Object.keys(layers).indexOf(value.category);
-            var color = colors[color_idx];
+            if (color_idx == -1) {
+                var color = "black"; 
+            } else {
+                var color = colors[color_idx];
+            }
             var temp_marker = L.circle([value.latitude, value.longitude], {
                 color: color,
                 fillColor: color,

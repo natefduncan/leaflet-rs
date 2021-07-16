@@ -14,6 +14,14 @@ fn main() {
                 .required(false)
                 .index(1),
         )
+        .arg(
+            Arg::with_name("COLORS")
+            .short("c")
+            .long("colors")
+            .value_name("COLORS")
+            .help("List of colors to use for markers.")
+            .takes_value(true)
+        )
         .get_matches();
 
     let mut data: Vec<map::Place> = Vec::new();
@@ -23,5 +31,8 @@ fn main() {
     } else {
         data.append(&mut map::stdin_to_places());
     }
-    map::render(data);
+
+    let colors = matches.value_of("COLORS").unwrap_or("#fbb4ae,#b3cde3,#ccebc5,#decbe4,#fed9a6,#ffffcc,#e5d8bd,#fddaec"); 
+    let colors = colors.split(",").map(|color| format!("'{}'", color)).collect::<Vec<String>>().join(","); 
+    map::render(data, &colors);
 }
