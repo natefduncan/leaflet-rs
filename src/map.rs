@@ -2,7 +2,8 @@ extern crate tera;
 use csv;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::io::{self, Write};
+use std::io::{self, Write, Read};
+use std::fs; 
 use tera::{Context, Tera};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -10,7 +11,7 @@ pub struct Place {
     latitude: f64,
     longitude: f64,
     name : String, 
-    category : String
+    category : Option<String>
 }
 
 pub fn render(places: Vec<Place>, colors : &str) {
@@ -46,25 +47,27 @@ pub fn vector_to_string(data: Vec<Place>) -> String {
     output
 }
 
-pub fn stdin_to_places() -> Vec<Place> {
-    let mut rdr = csv::Reader::from_reader(io::stdin());
+fn reader_to_places<R: Read>(rdr : &mut csv::Reader<R>) -> Vec<Place> {
     let mut output: Vec<Place> = Vec::new();
     for result in rdr.deserialize() {
-        let record: Place = result.expect("Could not coerce to places.");
+        let mut record: Place = result.expect("Could not coerce to places.");
+        if record.category == None {
+            record.category = Some("Place".to_string()); 
+        }
         output.push(record);
     }
     return output;
 }
 
+pub fn stdin_to_places() -> Vec<Place> {
+    let mut rdr = csv::Reader::from_reader(io::stdin());
+    reader_to_places::<io::Stdin>(&mut rdr)
+}
+
 pub fn file_to_places(file_path: &str) -> Vec<Place> {
     let path = std::fs::canonicalize(file_path).expect("Could not get path."); 
     let mut rdr = csv::Reader::from_path(path).expect("Could not get reader.");
-    let mut output: Vec<Place> = Vec::new();
-    for result in rdr.deserialize() {
-        let record: Place = result.expect("Could not coerce to places.");
-        output.push(record);
-    }
-    return output;
+    reader_to_places::<fs::File>(&mut rdr)
 }
 
 pub const TEMPLATE : &str = r#"
