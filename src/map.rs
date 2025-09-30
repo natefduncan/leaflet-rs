@@ -47,27 +47,58 @@ pub fn vector_to_string(data: Vec<Place>) -> String {
     output
 }
 
-fn reader_to_places<R: Read>(rdr : &mut csv::Reader<R>) -> Vec<Place> {
+pub struct ColumnMapping {
+    pub lat_col: String,
+    pub lng_col: String,
+    pub name_col: String,
+    pub category_col: String,
+}
+
+fn reader_to_places<R: Read>(rdr : &mut csv::Reader<R>, mapping: &ColumnMapping) -> Vec<Place> {
     let mut output: Vec<Place> = Vec::new();
-    for result in rdr.deserialize() {
-        let mut record: Place = result.expect("Could not coerce to places.");
-        if record.category == None {
-            record.category = Some("Place".to_string()); 
-        }
-        output.push(record);
+    let headers = rdr.headers().expect("Could not read headers").clone();
+
+    let lat_idx = headers.iter().position(|h| h == mapping.lat_col)
+        .expect(&format!("Could not find column '{}'", mapping.lat_col));
+    let lng_idx = headers.iter().position(|h| h == mapping.lng_col)
+        .expect(&format!("Could not find column '{}'", mapping.lng_col));
+    let name_idx = headers.iter().position(|h| h == mapping.name_col)
+        .expect(&format!("Could not find column '{}'", mapping.name_col));
+    let category_idx = headers.iter().position(|h| h == mapping.category_col);
+
+    for result in rdr.records() {
+        let record = result.expect("Could not read record");
+
+        let latitude: f64 = record.get(lat_idx)
+            .expect("Missing latitude value")
+            .parse()
+            .expect("Could not parse latitude as number");
+        let longitude: f64 = record.get(lng_idx)
+            .expect("Missing longitude value")
+            .parse()
+            .expect("Could not parse longitude as number");
+        let name = record.get(name_idx)
+            .expect("Missing name value")
+            .to_string();
+        let category = category_idx
+            .and_then(|idx| record.get(idx))
+            .map(|s| s.to_string())
+            .or(Some("Place".to_string()));
+
+        output.push(Place { latitude, longitude, name, category });
     }
     return output;
 }
 
-pub fn stdin_to_places() -> Vec<Place> {
+pub fn stdin_to_places(mapping: &ColumnMapping) -> Vec<Place> {
     let mut rdr = csv::Reader::from_reader(io::stdin());
-    reader_to_places::<io::Stdin>(&mut rdr)
+    reader_to_places::<io::Stdin>(&mut rdr, mapping)
 }
 
-pub fn file_to_places(file_path: &str) -> Vec<Place> {
-    let path = std::fs::canonicalize(file_path).expect("Could not get path."); 
+pub fn file_to_places(file_path: &str, mapping: &ColumnMapping) -> Vec<Place> {
+    let path = std::fs::canonicalize(file_path).expect("Could not get path.");
     let mut rdr = csv::Reader::from_path(path).expect("Could not get reader.");
-    reader_to_places::<fs::File>(&mut rdr)
+    reader_to_places::<fs::File>(&mut rdr, mapping)
 }
 
 pub const TEMPLATE : &str = r#"
